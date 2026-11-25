@@ -99,7 +99,7 @@ def _normalize_rdkit_2d_molpile(
     result = np.zeros(len(values), dtype=np.float64)
 
     for i, (name, value) in enumerate(zip(feature_names, values, strict=True)):
-        if name not in distributions or value is None or not np.isfinite(value):
+        if name not in distributions or value is None or np.isnan(value):
             continue
 
         thresholds, probabilities = distributions[name]
@@ -115,14 +115,19 @@ class RDKit2DDescriptorsFingerprint(BaseFingerprintTransformer):
     """
     RDKit 2D descriptors fingerprint.
 
-    The implementation uses descriptastorus [1]_ and RDKit. This fingerprint consists
-    of 200 2D descriptors available in RDKit (almost all). List of all features is
-    available in descriptastorus code and in the supplementary material of the original
-    paper [2]_.
+    The implementation uses RDKit, and follows descriptastorus [1]_. This fingerprint
+    consists of 200 2D descriptors available in RDKit (almost all). List of all features
+    is available in descriptastorus code and in the supplementary material of the
+    original paper [2]_.
 
-    Normalized variant uses cumulative distribution function (CDF) normalization, as
-    proposed in [2]_. Distributions for normalization have been determined using a
-    large collection of molecules from ChEMBL [3]_.
+    Normalized variants use cumulative distribution function (CDF) normalization, as
+    proposed in [2]_, resulting in values in range [0, 1]. Two sets of distributions
+    are available:
+
+    - ``"descriptastorus"`` - original parametric distributions from descriptastorus,
+      fitted using a large collection of molecules from ChEMBL [3]_
+    - ``"molpile"`` - empirical CDFs calculated on the whole MolPILE dataset [4]_,
+      which covers a broad chemical space of over 220 million molecules
 
     Typical correct values should be small, but it often results in NaN or infinity
     for some descriptors. Value clipping with ``clip_val`` parameter, feature selection,
@@ -130,8 +135,9 @@ class RDKit2DDescriptorsFingerprint(BaseFingerprintTransformer):
 
     Parameters
     ----------
-    normalized : bool, default=False
-        Whether to return CDF-normalized descriptor values.
+    normalized : bool, default=None
+        Deprecated, use ``normalization`` instead. ``normalized=True`` is equivalent
+        to ``normalization="descriptastorus"``.
 
     clip_val : float or None, default=2147483647
         Value to clip results at, both positive and negative ones.The default value is
@@ -156,6 +162,10 @@ class RDKit2DDescriptorsFingerprint(BaseFingerprintTransformer):
         If a dictionary is passed, it is treated as kwargs for ``tqdm()``,
         and can be used to control the progress bar.
 
+    normalization : {"none", "descriptastorus", "molpile"}, default="none"
+        Which CDF normalization of descriptor values to use. ``"none"`` returns raw
+        descriptor values. For ``"molpile"``, missing values (NaN) are set to zero.
+
     Attributes
     ----------
     n_features_out : int = 200
@@ -176,6 +186,9 @@ class RDKit2DDescriptorsFingerprint(BaseFingerprintTransformer):
 
     .. [3] Descriptastorus normalized descriptors discussion
         https://github.com/bp-kelley/descriptastorus/issues/3
+
+    .. [4] MolPILE dataset
+        https://huggingface.co/datasets/scikit-fingerprints/MolPILE
 
     Examples
     --------
@@ -485,8 +498,8 @@ class RDKit2DDescriptorsFingerprint(BaseFingerprintTransformer):
         else:
             use_normalization = self.normalized
 
-        # turn off RDKit logs, since descriptastorus does not use MorganGenerator
-        # and generates a lot of warnings
+        # turn off RDKit logs, since some descriptors do not use MorganGenerator
+        # and generate a lot of warnings
         with no_rdkit_logs():
             results = []
             for mol in mols:

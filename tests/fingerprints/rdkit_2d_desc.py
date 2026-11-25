@@ -212,17 +212,26 @@ def test_rdkit_2d_desc_molpile_cdf():
 
     assert_equal(len(distributions), 200)
 
+    for thresholds, probabilities in distributions.values():
+        assert len(thresholds) <= 512
+        assert np.all(np.diff(thresholds) > 0)
+        assert np.all(np.diff(probabilities) > 0)
+        assert probabilities[0] > 0
+        assert_equal(probabilities[-1], 1.0)
+
     thresholds, probabilities = distributions["ExactMolWt"]
-
-    assert np.all(np.diff(thresholds) > 0)
-    assert np.all(np.diff(probabilities) > 0)
-
-    result = _normalize_rdkit_2d_molpile(
-        [thresholds[0] - 1, thresholds[0], thresholds[-1] + 1, None],
-        ["ExactMolWt"] * 4,
-    )
+    values = [
+        thresholds[0] - 1,
+        thresholds[0],
+        thresholds[-1] + 1,
+        None,
+        np.nan,
+        -np.inf,
+        np.inf,
+    ]
+    result = _normalize_rdkit_2d_molpile(values, ["ExactMolWt"] * len(values))
 
     assert_allclose(
         result,
-        [0.0, probabilities[0], 1.0, 0.0],
+        [0.0, probabilities[0], 1.0, 0.0, 0.0, 0.0, 1.0],
     )

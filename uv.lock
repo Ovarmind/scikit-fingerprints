@@ -3326,7 +3326,6 @@ name = "scikit-fingerprints"
 version = "0.0.0"
 source = { editable = "." }
 dependencies = [
-    { name = "descriptastorus" },
     { name = "e3fp" },
     { name = "huggingface-hub" },
     { name = "joblib" },
@@ -3350,6 +3349,7 @@ neural = [
 [package.dev-dependencies]
 dev = [
     { name = "coverage" },
+    { name = "descriptastorus" },
     { name = "jupyter" },
     { name = "mypy" },
     { name = "pre-commit" },
@@ -3377,6 +3377,7 @@ eval = [
     { name = "tenacity" },
 ]
 test = [
+    { name = "descriptastorus" },
     { name = "mypy" },
     { name = "pre-commit" },
     { name = "pytest" },
@@ -3388,7 +3389,6 @@ test = [
 [package.metadata]
 requires-dist = [
     { name = "chemprop", marker = "extra == 'neural'", specifier = ">=2.2.0" },
-    { name = "descriptastorus", specifier = ">=2.0.0,<3" },
     { name = "e3fp", specifier = ">=1.2.6,<2" },
     { name = "huggingface-hub", specifier = ">=0.20.0,<2" },
     { name = "joblib", specifier = ">=1.0.0,<2" },
@@ -3406,6 +3406,7 @@ provides-extras = ["neural"]
 [package.metadata.requires-dev]
 dev = [
     { name = "coverage" },
+    { name = "descriptastorus", specifier = ">=2.0.0,<3" },
     { name = "jupyter" },
     { name = "mypy" },
     { name = "pre-commit" },
@@ -3431,6 +3432,7 @@ eval = [
     { name = "tenacity" },
 ]
 test = [
+    { name = "descriptastorus", specifier = ">=2.0.0,<3" },
     { name = "mypy" },
     { name = "pre-commit" },
     { name = "pytest" },
