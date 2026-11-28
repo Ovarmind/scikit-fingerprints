@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import polars as pl
 import pytest
 from numpy.testing import assert_array_equal, assert_equal
 from rdkit.Chem import AddHs, MolFromSmiles
@@ -167,23 +168,44 @@ def test_conformer_generator_copy_y():
     "labels",
     [
         [10, 20, 30],
+        (10, 20, 30),
         np.array([10, 20, 30]),
         pd.Series([10, 20, 30], index=[100, 200, 300]),
-        pd.DataFrame({"label": [10, 20, 30]}, index=[100, 200, 300]),
+        pl.Series([10, 20, 30]),
     ],
 )
-def test_conformer_generator_with_different_label_types(labels, monkeypatch):
+@pytest.mark.parametrize("errors", ["filter", "ignore"])
+def test_conformer_generator_with_different_label_types(labels, errors, monkeypatch):
     mols = [PropertyMol(MolFromSmiles(smi)) for smi in ("CCO", "CC", "O")]
     for mol, conf_id in zip(mols, (0, -1, 0), strict=True):
         mol.SetIntProp("conf_id", conf_id)
 
-    conf_gen = ConformerGenerator(errors="filter")
+    conf_gen = ConformerGenerator(errors=errors)
     monkeypatch.setattr(conf_gen, "_transform_batch", lambda mols: mols)
     mols, selected_labels = conf_gen.transform_x_y(mols, labels)
 
-    assert_equal(len(mols), 2)
-    assert isinstance(selected_labels, type(labels))
-    assert_array_equal(np.asarray(selected_labels).ravel(), [10, 30])
+    assert isinstance(selected_labels, np.ndarray)
+    assert_equal(selected_labels.ndim, 1)
 
-    if isinstance(selected_labels, (pd.Series, pd.DataFrame)):
-        assert_array_equal(selected_labels.index, [100, 300])
+    if errors == "filter":
+        assert_equal(len(mols), 2)
+        assert_array_equal(selected_labels, [10, 30])
+    else:
+        assert_equal(len(mols), 3)
+        assert_array_equal(selected_labels, [10, 20, 30])
+
+
+@pytest.mark.parametrize(
+    "labels",
+    [
+        np.array([[10], [20], [30]]),
+        pd.DataFrame({"label": [10, 20, 30]}),
+        pl.DataFrame({"label": [10, 20, 30]}),
+    ],
+)
+def test_conformer_generator_with_invalid_label_shape(labels):
+    mols = [MolFromSmiles(smi) for smi in ("CCO", "CC", "O")]
+    conf_gen = ConformerGenerator()
+
+    with pytest.raises(ValueError, match="only supports 1D target values"):
+        conf_gen.transform_x_y(mols, labels)

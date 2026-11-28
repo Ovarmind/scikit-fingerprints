@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import polars as pl
 import pytest
 from numpy.testing import assert_array_equal, assert_equal
 from rdkit.Chem import Mol, MolFromFASTA, MolToSmiles
@@ -100,22 +101,43 @@ def test_from_invalid_smiles_with_y(fasta_list):
     "labels",
     [
         [10, 20, 30],
+        (10, 20, 30),
         np.array([10, 20, 30]),
         pd.Series([10, 20, 30], index=[100, 200, 300]),
-        pd.DataFrame({"label": [10, 20, 30]}, index=[100, 200, 300]),
+        pl.Series([10, 20, 30]),
     ],
 )
-def test_from_invalid_aminoseq_with_different_label_types(labels):
+@pytest.mark.parametrize("valid_only", [True, False])
+def test_from_invalid_aminoseq_with_different_label_types(labels, valid_only):
     sequences = ["AC", "...", "GG"]
     mol_from_aminoseq = MolFromAminoseqTransformer(
-        valid_only=True, suppress_warnings=True
+        valid_only=valid_only, suppress_warnings=True
     )
 
     mols, selected_labels = mol_from_aminoseq.transform_x_y(sequences, labels)
 
-    assert_equal(len(mols), 2)
-    assert isinstance(selected_labels, type(labels))
-    assert_array_equal(np.asarray(selected_labels).ravel(), [10, 30])
+    assert isinstance(selected_labels, np.ndarray)
+    assert_equal(selected_labels.ndim, 1)
 
-    if isinstance(selected_labels, (pd.Series, pd.DataFrame)):
-        assert_array_equal(selected_labels.index, [100, 300])
+    if valid_only:
+        assert_equal(len(mols), 2)
+        assert_array_equal(selected_labels, [10, 30])
+    else:
+        assert_equal(len(mols), 3)
+        assert_array_equal(selected_labels, [10, 20, 30])
+
+
+@pytest.mark.parametrize(
+    "labels",
+    [
+        np.array([[10], [20], [30]]),
+        pd.DataFrame({"label": [10, 20, 30]}),
+        pl.DataFrame({"label": [10, 20, 30]}),
+    ],
+)
+def test_from_aminoseq_with_invalid_label_shape(labels):
+    sequences = ["AC", "AA", "GG"]
+    mol_from_aminoseq = MolFromAminoseqTransformer()
+
+    with pytest.raises(ValueError, match="only supports 1D target values"):
+        mol_from_aminoseq.transform_x_y(sequences, labels)

@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = ">=3.11, <3.14"
 resolution-markers = [
     "python_full_version >= '3.12' and sys_platform == 'win32'",
@@ -3352,6 +3352,7 @@ dev = [
     { name = "coverage" },
     { name = "jupyter" },
     { name = "mypy" },
+    { name = "polars" },
     { name = "pre-commit" },
     { name = "pytest" },
     { name = "pytest-cov" },
@@ -3378,6 +3379,7 @@ eval = [
 ]
 test = [
     { name = "mypy" },
+    { name = "polars" },
     { name = "pre-commit" },
     { name = "pytest" },
     { name = "pytest-rerunfailures" },
@@ -3408,6 +3410,7 @@ dev = [
     { name = "coverage" },
     { name = "jupyter" },
     { name = "mypy" },
+    { name = "polars", specifier = ">=1.43.2" },
     { name = "pre-commit" },
     { name = "pytest" },
     { name = "pytest-cov" },
@@ -3432,6 +3435,7 @@ eval = [
 ]
 test = [
     { name = "mypy" },
+    { name = "polars", specifier = ">=1.43.2" },
     { name = "pre-commit" },
     { name = "pytest" },
     { name = "pytest-rerunfailures" },
